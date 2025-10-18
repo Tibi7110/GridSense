@@ -1,6 +1,8 @@
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import r2_score, mean_squared_error
+from sklearn.metrics import r2_score, root_mean_squared_error
+
+
 try:
     # sklearn >=1.4 provides this helper
     from sklearn.metrics import root_mean_squared_error as sk_rmse
@@ -39,7 +41,7 @@ def train(df):
     if sk_rmse is not None:
         rmse = sk_rmse(y_test, y_pred)
     else:
-        rmse = mean_squared_error(y_test, y_pred, squared=False)
+        rmse = root_mean_squared_error(y_test, y_pred, squared=False)
     print(f"R2: {r2_score(y_test, y_pred):.4f}")
     print(f"RMSE: {rmse:.4f}")
 
