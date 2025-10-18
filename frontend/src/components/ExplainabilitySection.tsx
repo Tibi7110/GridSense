@@ -36,12 +36,13 @@ export function ExplainabilitySection({ window }: ExplainabilitySectionProps) {
         <Collapsible open={isOpen} onOpenChange={setIsOpen}>
           <CollapsibleTrigger className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors cursor-pointer">
             <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-            Cum calculăm
+            Semnificații
           </CollapsibleTrigger>
           <CollapsibleContent className="mt-3 space-y-2 text-sm text-gray-600">
+            <p>• <strong>Despre proiect:</strong> Avem o formulă matematică de calcul pentru a determina scorul de sustenabilitate.</p>
+            <p>• <strong>Calcul:</strong> Atribuim o pondere de 1 pentru sursele fără emisii de carbon, 
+            0,5 pentru sursele pe bază de gaz și 0 pentru sursele pe cărbune.</p>
             <p>• <strong>Colorare:</strong> Împărțim scorurile în percentile zilnice (Verde ≥ P70, Galben P51–P69, Portocaliu P25–P50, Roșu &lt; P25)</p>
-            <p>• <strong>Ferestre:</strong> Calculăm medii mobile pentru durata aleasă</p>
-            <p>• <strong>Stabilitate:</strong> Penalizăm variația mare și evităm ferestre foarte apropiate</p>
           </CollapsibleContent>
         </Collapsible>
       </div>

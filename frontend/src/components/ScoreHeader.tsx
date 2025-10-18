@@ -1,21 +1,22 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
 interface ScoreHeaderProps {
   currentScore: number;
   trend: 'în creștere' | 'stabil' | 'în scădere';
   nextBetterTime?: string;
+  currentColor?: 'green' | 'yellow' | 'orange' | 'red' | string | null;
+  lastModified?: string; // ISO string from API
 }
 
-export function ScoreHeader({ currentScore, trend }: ScoreHeaderProps) {
-  const getTrendIcon = () => {
-    if (trend === 'în creștere') return <TrendingUp className="w-5 h-5 text-green-600" />;
-    if (trend === 'în scădere') return <TrendingDown className="w-5 h-5 text-red-600" />;
-    return <Minus className="w-5 h-5 text-gray-500" />;
-  };
+export function ScoreHeader({ currentScore, trend, currentColor, lastModified }: ScoreHeaderProps) {
   
   const getScoreColor = () => {
+    if (currentColor === 'green') return 'text-green-600';
+    if (currentColor === 'yellow') return 'text-yellow-600';
+    if (currentColor === 'orange') return 'text-orange-500';
+    if (currentColor === 'red') return 'text-red-600';
+    // fallback by numeric thresholds
     if (currentScore >= 75) return 'text-green-600';
     if (currentScore >= 50) return 'text-yellow-600';
     return 'text-red-600';
@@ -28,9 +29,8 @@ export function ScoreHeader({ currentScore, trend }: ScoreHeaderProps) {
         <div className="flex items-center gap-3 flex-wrap">
           <h2 className="text-gray-700">Scor acum:</h2>
           <div className={`flex items-center gap-2 ${getScoreColor()}`}>
-            <span className="text-3xl font-bold">69</span>
+            <span className="text-3xl font-bold">{currentScore}</span>
             <span className="text-xl text-gray-400">/100</span>
-            {getTrendIcon()}
           </div>
         </div>
         {/* Legend and update time */}
@@ -39,7 +39,20 @@ export function ScoreHeader({ currentScore, trend }: ScoreHeaderProps) {
             Scor 0–100 (mai mare = mai favorabil)
           </div>
           <Badge variant="secondary" className="bg-gray-100 text-gray-700">
-            Ultima actualizare: acum 5 min
+            {(() => {
+              if (!lastModified) return 'Ultima actualizare: necunoscut';
+              const updated = new Date(lastModified);
+              const now = new Date();
+              const diffMs = Math.max(0, now.getTime() - updated.getTime());
+              const diffMin = Math.floor(diffMs / 60000);
+              const diffHr = Math.floor(diffMin / 60);
+              const remainderMin = diffMin % 60;
+              if (diffMin < 1) return 'Ultima actualizare: acum';
+              if (diffMin < 60) return `Ultima actualizare: acum ${diffMin} ${diffMin === 1 ? 'minut' : 'minute'}`;
+              if (diffHr < 24) return `Ultima actualizare: acum ${diffHr} ${diffHr === 1 ? 'oră' : 'ore'} ${remainderMin ? `și ${remainderMin} min` : ''}`.trim();
+              const days = Math.floor(diffHr / 24);
+              return `Ultima actualizare: acum ${days} ${days === 1 ? 'zi' : 'zile'}`;
+            })()}
           </Badge>
         </div>
       </div>

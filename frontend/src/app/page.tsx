@@ -1,11 +1,9 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
-import { generateMockScoreData } from "@/utils/scoreData";
+import React, { useState, useMemo, useEffect } from "react";
 import { ScoreHeader } from "@/components/ScoreHeader";
 import { Timeline } from "@/components/Timeline";
 import { WindowCard } from "@/components/WindowCard";
-import { DurationChips } from "@/components/DurationChips";
 import { ExplainabilitySection } from "@/components/ExplainabilitySection";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info } from "lucide-react";
@@ -13,7 +11,6 @@ import {
   ScorePoint,
   TimeWindow,
   findBestWindows,
-  getCurrentTimeIndex,
 } from "@/utils/scoreData";
 import { toast } from "sonner";
 
@@ -22,14 +19,53 @@ interface HomePageProps {
 }
 
 export default function Page() {
-  // Generate mock data once
-  const data = useMemo(() => generateMockScoreData(), []);
-  const [selectedDuration, setSelectedDuration] = useState(60);
+  // Load data from backend API
+  const [data, setData] = useState<ScorePoint[]>([]);
+  const [apiCurrentScore, setApiCurrentScore] = useState<number | null>(null);
+  const [apiCurrentColor, setApiCurrentColor] = useState<string | null>(null);
+  const [currentTime, setCurrentTime] = useState<string | null>(null);
+  const [recommended, setRecommended] = useState<TimeWindow[]>([]);
+  useEffect(() => {
+    let mounted = true;
+    fetch("/api/score")
+      .then((r) => r.json())
+      .then((json) => {
+        if (!mounted) return;
+  if (json?.data) setData(json.data as ScorePoint[]);
+  if (typeof json?.currentScore === 'number') setApiCurrentScore(json.currentScore);
+  if (typeof json?.currentColor === 'string') setApiCurrentColor(json.currentColor);
+  if (typeof json?.currentTime === 'string') setCurrentTime(json.currentTime);
+      })
+      .catch(() => {});
+    // Load recommended windows from backend
+    fetch("/api/wash/windows")
+      .then((r) => r.json())
+      .then((j) => {
+        if (!mounted) return;
+        if (j?.ok && Array.isArray(j?.windows)) setRecommended(j.windows as TimeWindow[]);
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, []);
+  const selectedDuration = 60;
   const [selectedWindow, setSelectedWindow] = useState<TimeWindow | null>(null);
-  const currentIndex = getCurrentTimeIndex();
-  const currentScore = data[currentIndex].score;
+  // Compute current index by rounding now to nearest 10 minutes
+  const currentIndex = useMemo(() => {
+    if (!data.length) return 0;
+    const now = new Date();
+    const hh = now.getHours();
+    const mm = now.getMinutes();
+    const bucket = Math.round(mm / 10);
+    const clamped = Math.min(5, bucket);
+    return hh * 6 + clamped;
+  }, [data.length]);
+  const currentScore = apiCurrentScore ?? (data.length ? data[Math.min(currentIndex, data.length - 1)].score : 0);
 
-  const windows = findBestWindows(data, selectedDuration, currentScore);
+  const windows = (recommended && recommended.length > 0)
+    ? recommended
+    : findBestWindows(data, selectedDuration, currentScore);
   const displayWindow = selectedWindow || windows[0];
 
   // Find next better time
@@ -43,7 +79,7 @@ export default function Page() {
 
   const handleNotify = (window: TimeWindow) => {
     toast.success(`Notificare setată pentru ${window.start}`, {
-      description: `Vei primi o notificare când începe fereastra ta favorabilă.`,
+      description: `La ora ${window.start} va începe.`,
     });
   };
 
@@ -61,7 +97,7 @@ export default function Page() {
   const maxScore = Math.max(...data.map((d) => d.score));
   const minScore = Math.min(...data.map((d) => d.score));
   const isSubtle = maxScore - minScore < 20;
-  const [activeTab, setActiveTab] = useState("home");
+  
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
@@ -71,6 +107,8 @@ export default function Page() {
           <ScoreHeader
             currentScore={currentScore}
             trend="stabil"
+            currentColor={apiCurrentColor ?? undefined}
+            lastModified={currentTime ?? undefined}
           />
 
           {/* Timeline */}
@@ -81,13 +119,8 @@ export default function Page() {
 
           {/* Suggested windows */}
           <div>
-            <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+            <div className="mb-4">
               <h2 className="text-gray-900">Ferestre recomandate</h2>
-              <DurationChips
-                durations={[30, 60, 90, 120]}
-                selected={selectedDuration}
-                onChange={setSelectedDuration}
-              />
             </div>
 
             {isSubtle && (

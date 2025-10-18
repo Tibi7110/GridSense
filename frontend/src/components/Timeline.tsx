@@ -36,15 +36,7 @@ export function Timeline({ data, currentIndex }: TimelineProps) {
     return Math.round((index / sorted.length) * 100);
   };
   
-  const getTrend = (index: number): string => {
-    if (index >= data.length - 1) return 'stabil';
-    const current = data[index].score;
-    const next = data[Math.min(index + 3, data.length - 1)].score;
-    const diff = next - current;
-    if (diff > 5) return 'în creștere';
-    if (diff < -5) return 'în scădere';
-    return 'stabil';
-  };
+  // Trend removed on request
   
   return (
     <div className="w-full">
@@ -56,8 +48,9 @@ export function Timeline({ data, currentIndex }: TimelineProps) {
               const color = getColor(point.score);
               const isCurrent = index === currentIndex;
               const percentile = getPercentile(point.score);
-              const trend = getTrend(index);
               const delta = point.score - data[currentIndex].score;
+              const scoreDisplay = Number(point.score).toFixed(2);
+              const deltaDisplay = `${delta >= 0 ? '+' : '-'}${Math.abs(delta).toFixed(2)}`;
               
               return (
                 <Tooltip key={index}>
@@ -83,9 +76,8 @@ export function Timeline({ data, currentIndex }: TimelineProps) {
                   <TooltipContent className="bg-gray-900 text-white p-3 rounded-lg shadow-lg">
                     <div className="space-y-1">
                       <div className="font-semibold">{point.time}</div>
-                      <div>Scor: {point.score} (P{percentile})</div>
-                      <div>Trend: {trend}</div>
-                      <div>{delta >= 0 ? '+' : ''}{delta} vs acum</div>
+                      <div>Scor: {scoreDisplay} (P{percentile})</div>
+                      <div>{deltaDisplay} vs acum</div>
                     </div>
                   </TooltipContent>
                 </Tooltip>
@@ -108,30 +100,9 @@ export function Timeline({ data, currentIndex }: TimelineProps) {
         </div>
         
         {/* Hint text */}
-        <div className="mt-3 text-xs text-gray-500 text-center">
-          Treceți cu mouse-ul peste bare pentru detalii • 144 intervale × 10 min
-        </div>
       </div>
       
-      {/* Legend */}
-      <div className="mt-4 flex flex-wrap items-center justify-center gap-4 text-sm text-gray-600">
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded" style={{ backgroundColor: '#2E8540' }} />
-          <span>Verde ≥ P70 (top 30%)</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded" style={{ backgroundColor: '#FFFF00' }} />
-          <span>Galben P50–P70</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded" style={{ backgroundColor: '#FFA500' }} />
-          <span>Portocaliu P25–P50</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded" style={{ backgroundColor: '#D0021B' }} />
-          <span>Roșu &lt; P25</span>
-        </div>
-      </div>
+      {/* Legend removed on request */}
     </div>
   );
 }
