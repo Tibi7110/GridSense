@@ -36,9 +36,9 @@ def data():
 
         sold = to_num(row.get('Sold[MW]', 0))
         if sold > 0:
-            scor -= 1.5 * calculate_percentage(prod, sold)
+            scor -= 1.2 * calculate_percentage(prod, sold)
         else:
-            scor += 2 * calculate_percentage(prod, sold)
+            scor += 2.5 * calculate_percentage(prod, sold)
 
         scor *= 100
         # ensure numeric
