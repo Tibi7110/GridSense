@@ -49,7 +49,7 @@ def data():
 
 
 
-    df = pd.read_excel("/home/tibi/Proiecte/Sustenability/backend/input/Grafic_SEN (1).xlsx")
+    df = pd.read_excel("input/Grafic_SEN (1).xlsx")
     # parse datetime first to allow dropping invalid rows early
     df['Data'] = pd.to_datetime(df['Data'], errors='coerce', dayfirst=True)
     # compute score per row

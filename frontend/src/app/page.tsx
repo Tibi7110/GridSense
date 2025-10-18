@@ -78,8 +78,9 @@ export default function Page() {
       : undefined;
 
   const handleNotify = (window: TimeWindow) => {
-    toast.success(`Notificare setată pentru ${window.start}`, {
-      description: `La ora ${window.start} va începe.`,
+    toast.success(`🔔 Notificare setată cu succes!`, {
+      description: `Vei primi o notificare la ora ${window.start} când va începe fereastra optimă pentru spălat.`,
+      duration: 4000,
     });
   };
 
