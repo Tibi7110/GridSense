@@ -86,16 +86,21 @@ export async function GET() {
   let currentTime: string | null = null;
     if (data.length > 0) {
       const now = new Date();
-      const hh = String(now.getHours()).padStart(2, '0');
-      const bucket = Math.round(now.getMinutes() / 10);
-      const mm = String(Math.min(5, bucket) * 10).padStart(2, '0');
+      const hhNum = now.getHours();
+  // Floor to the lower 10-minute bucket (e.g., 12:06 -> 12:00)
+  const bucket = Math.floor(now.getMinutes() / 10);
+  const mmBucket = Math.max(0, Math.min(5, bucket)) * 10;
+      const hh = String(hhNum).padStart(2, '0');
+      const mm = String(mmBucket).padStart(2, '0');
       const key = `${hh}:${mm}`;
       const row = data.find((r) => r.time === key);
       if (row) {
         currentScore = Math.round(row.score * 100) / 100;
         currentColor = row.color ?? null;
-        // Mark as current reading time to avoid "acum 1 zi" when CSV is from a previous date
-        currentTime = new Date().toISOString();
+        // Set last update to the start of the current 10-minute bucket (today),
+        // so the UI shows a meaningful delta like "acum 6 minute".
+        const bucketStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hhNum, mmBucket, 0, 0);
+        currentTime = bucketStart.toISOString();
       }
     }
     return NextResponse.json({ data, currentScore, currentColor, currentTime, lastModified, source: path.basename(filePath) });
