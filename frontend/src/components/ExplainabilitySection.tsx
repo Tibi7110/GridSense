@@ -14,9 +14,10 @@ export function ExplainabilitySection({ window }: ExplainabilitySectionProps) {
   if (!window) return null;
   
   const reasons = [
-    `Scor în ${window.percentile >= 90 ? 'top 10%' : window.percentile >= 75 ? 'top 25%' : 'top 50%'} al zilei`,
-    `Trend local ${window.trend === 'în creștere' ? 'ascendent' : window.trend === 'în scădere' ? 'descendent' : 'stabil'}`,
-    `Variație ${window.stability === 'ridicată' ? 'redusă' : window.stability === 'medie' ? 'moderată' : 'ridicată'} (±${window.stabilityValue} puncte)`
+    `${window.percentile >= 90 ? '🌟 Energie ultra-curată' : window.percentile >= 75 ? '✨ Energie foarte curată' : '💚 Energie curată'} - în ${window.percentile >= 90 ? 'top 10%' : window.percentile >= 75 ? 'top 25%' : 'top 50%'} al zilei`,
+    `🔋 Mix energetic ${window.avgScore >= 70 ? 'predominant regenerabil' : window.avgScore >= 50 ? 'echilibrat' : 'cu impact redus'} (scor ${Math.round(window.avgScore)}/100)`,
+    `📊 Stabilitate ${window.stability === 'ridicată' ? 'excelentă' : window.stability === 'medie' ? 'bună' : 'acceptabilă'} - variație de doar ±${window.stabilityValue} puncte`,
+    `${window.trend === 'în creștere' ? '📈 Trend ascendent - energia se curăță' : window.trend === 'în scădere' ? '📉 Aprovizionare stabilă' : '➡️ Condiții constante'}`
   ];
   
   return (
