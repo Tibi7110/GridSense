@@ -3,7 +3,8 @@
 export interface ScorePoint {
   time: string; // HH:mm format
   score: number; // 0-100
-  timestamp: Date;
+  timestamp: Date | string;
+  color?: 'green' | 'yellow' | 'orange' | 'red' | string;
 }
 
 export interface TimeWindow {
@@ -17,43 +18,63 @@ export interface TimeWindow {
   trend: 'în creștere' | 'stabil' | 'în scădere';
 }
 
+// Deterministic pseudo-random generator (mulberry32)
+function mulberry32(seed: number) {
+  return function () {
+    let t = (seed += 0x6D2B79F5);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 // Generate mock data: 144 points for 24 hours (10-minute intervals)
-export function generateMockScoreData(): ScorePoint[] {
+// Hydration-safe: deterministic by seed and timezone-agnostic time strings
+export function generateMockScoreData(seed: number = 12345): ScorePoint[] {
   const data: ScorePoint[] = [];
-  const baseDate = new Date();
-  baseDate.setHours(0, 0, 0, 0);
+  const rand = mulberry32(seed);
 
   for (let i = 0; i < 144; i++) {
-    const time = new Date(baseDate.getTime() + i * 10 * 60 * 1000);
-    const hours = time.getHours();
-    
+    const hours = Math.floor(i / 6);
+    const minutes = (i % 6) * 10;
+
     // Create patterns: lower scores during peak hours (7-9, 17-21), higher at night
     let baseScore = 50;
-    
     if (hours >= 0 && hours < 6) baseScore = 75; // Night
     else if (hours >= 6 && hours < 9) baseScore = 35; // Morning peak
     else if (hours >= 9 && hours < 17) baseScore = 60; // Day
     else if (hours >= 17 && hours < 21) baseScore = 30; // Evening peak
     else baseScore = 70; // Late evening
-    
-    // Add randomness ±15
-    const score = Math.max(0, Math.min(100, baseScore + (Math.random() * 30 - 15)));
-    
+
+    // Add deterministic jitter ±15 using seeded PRNG
+    const jitter = (rand() * 30 - 15);
+    const score = Math.max(0, Math.min(100, baseScore + jitter));
+
+    // Fixed base date to build timestamps (local), but hours/minutes come from index to avoid TZ differences
+    const timestamp = new Date(2000, 0, 1, hours, minutes, 0, 0);
+
     data.push({
-      time: `${String(hours).padStart(2, '0')}:${String(time.getMinutes()).padStart(2, '0')}`,
+      time: `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`,
       score: Math.round(score),
-      timestamp: time
+      timestamp,
     });
   }
-  
+
   return data;
 }
 
 // Calculate percentiles for threshold determination
 export function calculatePercentile(data: ScorePoint[], percentile: number): number {
-  const sorted = [...data].sort((a, b) => a.score - b.score);
-  const index = Math.ceil((percentile / 100) * sorted.length) - 1;
-  return sorted[Math.max(0, index)].score;
+  if (!data || data.length === 0) return 0;
+  const scores = data
+    .map((d) => d?.score)
+    .filter((s): s is number => typeof s === 'number' && Number.isFinite(s));
+  if (scores.length === 0) return 0;
+  const sorted = scores.sort((a, b) => a - b);
+  const p = Math.max(0, Math.min(100, percentile));
+  const index = Math.ceil((p / 100) * sorted.length) - 1;
+  const safeIndex = Math.min(sorted.length - 1, Math.max(0, index));
+  return sorted[safeIndex];
 }
 
 // Get color based on score and percentiles with hysteresis

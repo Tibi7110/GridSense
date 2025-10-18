@@ -11,6 +11,9 @@ run:
 power:
 	python3 client.py
 
+virtual:
+	python3 virtual_washer.py
+
 git:
 	rm -rf __pycache__/
 	rm -rf data/
