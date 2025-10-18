@@ -71,7 +71,6 @@ export default function Page() {
           <ScoreHeader
             currentScore={currentScore}
             trend="stabil"
-            nextBetterTime={nextBetterTime}
           />
 
           {/* Timeline */}

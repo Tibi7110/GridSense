@@ -57,17 +57,18 @@ export function calculatePercentile(data: ScorePoint[], percentile: number): num
 }
 
 // Get color based on score and percentiles with hysteresis
-export function getScoreColor(score: number, p25: number, p75: number, prevColor?: string): string {
-  const hysteresis = 5;
+export function getScoreColor(score: number, p25: number, p50: number, p70: number, prevColor?: string): string {
   
   // Apply hysteresis to prevent flicker
-  if (prevColor === 'green' && score >= p75 - hysteresis) return 'green';
-  if (prevColor === 'yellow' && score >= p25 - hysteresis && score < p75 + hysteresis) return 'yellow';
-  if (prevColor === 'red' && score < p25 + hysteresis) return 'red';
+  if (prevColor === 'green' && score >= p70) return 'green';
+  if (prevColor === 'yellow' && score >= p50 && score < p70) return 'yellow';
+  if (prevColor === 'orange' && score >= p25 && score <= p50) return 'orange';
+  if (prevColor === 'red' && score < p25) return 'red';
   
   // Default threshold logic
-  if (score >= p75) return 'green';
-  if (score >= p25) return 'yellow';
+  if (score >= p70) return 'green';
+  if (score >= p50) return 'yellow';
+  if (score >= p25) return 'orange';
   return 'red';
 }
 

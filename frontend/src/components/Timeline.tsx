@@ -11,7 +11,8 @@ export function Timeline({ data, currentIndex }: TimelineProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   
   const p25 = calculatePercentile(data, 25);
-  const p75 = calculatePercentile(data, 75);
+  const p50 = calculatePercentile(data, 50);
+  const p70 = calculatePercentile(data, 70);
   
   // Group by hour for labels
   const hourLabels: { index: number; label: string }[] = [];
@@ -22,9 +23,9 @@ export function Timeline({ data, currentIndex }: TimelineProps) {
   });
   
   const getColor = (score: number) => {
-    const color = getScoreColor(score, p25, p75);
+    const color = getScoreColor(score, p25, p50, p70);
     if (color === 'green') return '#2E8540';
-    if (color === 'yellow') return '#F5A623';
+    if (color === 'yellow') return '#FFFF00';
     if(color == 'orange') return '#FFA500';
     return '#D0021B';
   };
@@ -116,18 +117,19 @@ export function Timeline({ data, currentIndex }: TimelineProps) {
       <div className="mt-4 flex flex-wrap items-center justify-center gap-4 text-sm text-gray-600">
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 rounded" style={{ backgroundColor: '#2E8540' }} />
-          <span>Verde ≥ P75 (top 25%)</span>
+          <span>Verde ≥ P70 (top 30%)</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded" style={{ backgroundColor: '#F5A623' }} />
-          <span>Galben P25–P75</span>
+          <div className="w-4 h-4 rounded" style={{ backgroundColor: '#FFFF00' }} />
+          <span>Galben P50–P70</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 rounded" style={{ backgroundColor: '#FFA500' }} />
+          <span>Portocaliu P25–P50</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 rounded" style={{ backgroundColor: '#D0021B' }} />
           <span>Roșu &lt; P25</span>
-        </div>
-        <div className="text-xs text-gray-500">
-          (histerezis ±5p pentru stabilitate)
         </div>
       </div>
     </div>
