@@ -1,7 +1,7 @@
 import pandas as pd
 from datetime import datetime, timedelta
 from typing import Optional, Tuple
-
+from api import send_api
 
 def _build_intervals(df: pd.DataFrame, time_col: str = "Data") -> pd.DataFrame:
     """
@@ -94,9 +94,6 @@ def color(
     )
     return True, details
 
-def send_api():
-    print(200)
-
 def send(
     dictionary: Optional[dict],
     csv_path: str = "/home/tibi/Proiecte/Sustenability/data/next_day_predictions_colored_2025-10-18.csv",
@@ -141,6 +138,7 @@ def send(
             allowed = {"orange", "red"}
             if all(c in allowed for c in prev_colors):
                 send_api()
+                return
         except Exception:
             return
 
