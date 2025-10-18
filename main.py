@@ -63,3 +63,4 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"Warning: could not generate hourly color labels: {e}")
 
+'''Run with: PREDICT_NEXT_DAY=true python3 /home/tibi/Proiecte/Sustenability/main.py'''
