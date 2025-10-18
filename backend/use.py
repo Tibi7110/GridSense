@@ -60,7 +60,7 @@ def find_interval(
 
 
 def color(
-    csv_path: str = "/home/tibi/Proiecte/Sustenability/backend/data/next_day_predictions_colored_2025-10-18.csv",
+    csv_path: str = "data/next_day_predictions_colored_2025-10-18.csv",
     when: Optional[datetime] = None,
 ) -> Tuple[bool, Optional[dict]]:
     """
@@ -96,7 +96,7 @@ def color(
 
 def send(
     dictionary: Optional[dict],
-    csv_path: str = "/home/tibi/Proiecte/Sustenability/backend/data/next_day_predictions_colored_2025-10-18.csv",
+    csv_path: str = "data/next_day_predictions_colored_2025-10-18.csv",
 ):
     """
     Trigger send() based on current color and recent history:

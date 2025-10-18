@@ -69,7 +69,7 @@ export function WindowCard({ window, onNotify, onDetails }: WindowCardProps) {
   {/* Actions */}
   <div className="flex flex-col sm:flex-row flex-wrap gap-2 pt-2 w-full min-w-0">
           <Button 
-            className="flex-1 min-w-0 whitespace-normal break-words text-center bg-[#2E8540] hover:bg-[#236835] text-white cursor-pointer"
+            className="flex-1 min-w-0 whitespace-normal break-words text-center bg-[#2E8540] hover:bg-[#236835] text-white cursor-pointer py-4 px-2"
             onClick={async () => {
               try {
                 // Build ISO datetime for today's date at the window start time (local)
@@ -118,14 +118,6 @@ export function WindowCard({ window, onNotify, onDetails }: WindowCardProps) {
           >
             <Bell className="w-4 h-4 mr-2" />
             Trimite notificare la start
-          </Button>
-          <Button 
-            variant="outline" 
-            className="flex-1 min-w-0 whitespace-normal break-words text-center cursor-pointer"
-            onClick={onDetails}
-          >
-            <Info className="w-4 h-4 mr-2" />
-            Detalii și explicații
           </Button>
         </div>
       </div>

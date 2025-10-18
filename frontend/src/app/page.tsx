@@ -78,9 +78,27 @@ export default function Page() {
       : undefined;
 
   const handleNotify = (window: TimeWindow) => {
-    toast.success(`Notificare setată pentru ${window.start}`, {
-      description: `La ora ${window.start} va începe.`,
-    });
+    toast.success(
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <span className="text-2xl">✓</span>
+          <span className="font-bold text-gray-900">Notificare setată cu succes!</span>
+        </div>
+        <div className="flex flex-col gap-1 ml-8">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">🕐</span>
+            <span className="text-gray-800">Vei fi notificat la ora <span className="font-semibold text-gray-900">{window.start}</span></span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-lg">⚡</span>
+            <span className="text-gray-800">Fereastră optimă pentru spălat rufe</span>
+          </div>
+        </div>
+      </div>,
+      {
+        duration: 5000,
+      }
+    );
   };
 
   const handleDetails = (window: TimeWindow) => {
