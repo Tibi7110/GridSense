@@ -39,10 +39,9 @@ export function ExplainabilitySection({ window }: ExplainabilitySectionProps) {
             Cum calculăm
           </CollapsibleTrigger>
           <CollapsibleContent className="mt-3 space-y-2 text-sm text-gray-600">
-            <p>• <strong>Colorare:</strong> Împărțim scorurile în percentile zilnice (Verde ≥ P75, Galben P25–P75, Roșu &lt; P25)</p>
+            <p>• <strong>Colorare:</strong> Împărțim scorurile în percentile zilnice (Verde ≥ P70, Galben P51–P69, Portocaliu P25–P50, Roșu &lt; P25)</p>
             <p>• <strong>Ferestre:</strong> Calculăm medii mobile pentru durata aleasă</p>
             <p>• <strong>Stabilitate:</strong> Penalizăm variația mare și evităm ferestre foarte apropiate</p>
-            <p>• <strong>Histerezis:</strong> ±5 puncte în jurul pragurilor pentru a evita schimbări rapide de culoare</p>
           </CollapsibleContent>
         </Collapsible>
       </div>

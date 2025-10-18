@@ -8,7 +8,7 @@ interface ScoreHeaderProps {
   nextBetterTime?: string;
 }
 
-export function ScoreHeader({ currentScore, trend, nextBetterTime }: ScoreHeaderProps) {
+export function ScoreHeader({ currentScore, trend }: ScoreHeaderProps) {
   const getTrendIcon = () => {
     if (trend === 'în creștere') return <TrendingUp className="w-5 h-5 text-green-600" />;
     if (trend === 'în scădere') return <TrendingDown className="w-5 h-5 text-red-600" />;
@@ -33,14 +33,6 @@ export function ScoreHeader({ currentScore, trend, nextBetterTime }: ScoreHeader
             {getTrendIcon()}
           </div>
         </div>
-        
-        {/* Status message */}
-        {nextBetterTime && (
-          <div className="text-gray-600">
-            Mai favorabil în <span className="font-semibold">{nextBetterTime}</span>
-          </div>
-        )}
-        
         {/* Legend and update time */}
         <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-gray-100">
           <div className="text-sm text-gray-500">

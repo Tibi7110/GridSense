@@ -37,7 +37,7 @@ export default function RootLayout({
         <footer className="mt-16 py-8 border-t border-gray-200 bg-white">
         <div className="container mx-auto px-4 text-center text-sm text-gray-500">
           <p>
-            Plan Consum © 2025 — Instrument pentru planificarea consumului de
+            Green Greed © 2025 — Instrument pentru planificarea consumului de
             electricitate
           </p>
           <p className="mt-2">
