@@ -3,8 +3,7 @@ from data import data
 from model import train, predict_next_day
 from print import (
     printf,
-    plot_predictions_by_hour_minute,
-    plot_predictions_heatmap,
+
     plot_predictions_hour_line,
 )
 
@@ -40,20 +39,6 @@ if __name__ == "__main__":
             print(f"Saved next-day predictions to {out_path}")
         except Exception as e:
             print(f"Warning: could not save predictions to {out_path}: {e}")
-
-        # also save a plot
-        plot_out = os.getenv("NEXT_DAY_PLOT") or os.path.join(out_dir, f"next_day_predictions_{next_day_str}.png")
-        try:
-            plot_predictions_by_hour_minute(next_day_df, save_path=plot_out, show=False)
-        except Exception as e:
-            print(f"Warning: could not generate plot {plot_out}: {e}")
-
-        # save heatmap chart as well
-        heatmap_out = os.getenv("NEXT_DAY_HEATMAP") or os.path.join(out_dir, f"next_day_predictions_heatmap_{next_day_str}.png")
-        try:
-            plot_predictions_heatmap(next_day_df, save_path=heatmap_out, show=False)
-        except Exception as e:
-            print(f"Warning: could not generate heatmap {heatmap_out}: {e}")
 
         # save hourly line chart as well
         hour_line_out = os.getenv("NEXT_DAY_HOURLY_LINE") or os.path.join(out_dir, f"next_day_predictions_hourly_{next_day_str}.png")
