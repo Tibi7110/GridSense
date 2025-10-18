@@ -6,7 +6,8 @@ import { Timeline } from "@/components/Timeline";
 import { WindowCard } from "@/components/WindowCard";
 import { ExplainabilitySection } from "@/components/ExplainabilitySection";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info } from "lucide-react";
+import { Info, AlertCircle, Zap } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   ScorePoint,
   TimeWindow,
@@ -116,6 +117,60 @@ export default function Page() {
   const minScore = Math.min(...data.map((d) => d.score));
   const isSubtle = maxScore - minScore < 20;
   
+  const handleEmergencyUse = async () => {
+    try {
+      const resp = await fetch('/api/wash/decision', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ when: new Date().toISOString(), emergency: true }),
+      });
+      const json = await resp.json().catch(() => ({}));
+      
+      if (json?.ok) {
+        if (json?.triggered) {
+          toast.success(
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">⚡</span>
+                <span className="font-bold text-gray-900">Consum de urgență activat!</span>
+              </div>
+              <div className="flex flex-col gap-1 ml-8">
+                <span className="text-gray-800">Aparatul a pornit imediat</span>
+                {json?.details?.Color && (
+                  <span className="text-sm text-gray-600">Condiții actuale: {json.details.Color}</span>
+                )}
+              </div>
+            </div>,
+            { duration: 5000 }
+          );
+        } else {
+          toast.message(
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">⏳</span>
+                <span className="font-bold text-gray-900">Condiții acceptabile pentru urgență</span>
+              </div>
+              <div className="flex flex-col gap-1 ml-8">
+                <span className="text-gray-800">Recomandăm să aștepți un interval mai verde dacă poți</span>
+                {json?.details?.Color && (
+                  <span className="text-sm text-gray-600">Condiții actuale: {json.details.Color}</span>
+                )}
+              </div>
+            </div>,
+            { duration: 5000 }
+          );
+        }
+      } else {
+        toast.error('Eroare la verificarea condițiilor', {
+          description: String(json?.error || 'necunoscută'),
+        });
+      }
+    } catch (e) {
+      console.error('Emergency use failed', e);
+      toast.error('Nu s-a putut contacta backend-ul');
+    }
+  };
+  
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
@@ -128,6 +183,29 @@ export default function Page() {
             currentColor={apiCurrentColor ?? undefined}
             lastModified={currentTime ?? undefined}
           />
+
+          {/* Emergency Use Button */}
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-lg p-6">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertCircle className="w-5 h-5 text-amber-600" />
+                  <h3 className="font-semibold text-gray-900">Consum de Urgență</h3>
+                </div>
+                <p className="text-sm text-gray-700">
+                  Ai nevoie de energie acum? Apasă pentru a porni imediat, chiar dacă condițiile nu sunt optime. 
+                  Sistemul va evalua dacă ai așteptat suficient timp în condiții nefavorabile.
+                </p>
+              </div>
+              <Button
+                onClick={handleEmergencyUse}
+                className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold px-6 py-6 shadow-lg hover:shadow-xl transition-all whitespace-nowrap"
+              >
+                <Zap className="w-5 h-5 mr-2" />
+                Pornește Acum
+              </Button>
+            </div>
+          </div>
 
           {/* Timeline */}
           <div>

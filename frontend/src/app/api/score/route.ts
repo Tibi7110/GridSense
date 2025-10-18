@@ -5,8 +5,23 @@ import path from 'path';
 type Row = { time: string; score: number; timestamp: string; color?: string };
 
 function findLatestColoredCsv(baseDir: string): string | null {
-  const dataDir = path.join(baseDir, '..', 'backend', 'data');
-  if (!fs.existsSync(dataDir)) return null;
+  // Try multiple possible paths for the backend data directory
+  const possiblePaths = [
+    path.join(baseDir, '..', 'backend', 'data'),  // if frontend is sibling to backend
+    path.join(baseDir, 'backend', 'data'),        // if running from project root
+    path.resolve(__dirname, '..', '..', '..', '..', '..', 'backend', 'data'), // absolute from build
+  ];
+  
+  let dataDir: string | null = null;
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p)) {
+      dataDir = p;
+      break;
+    }
+  }
+  
+  if (!dataDir) return null;
+  
   const files = fs.readdirSync(dataDir);
   const matches = files
     .map((f) => ({
