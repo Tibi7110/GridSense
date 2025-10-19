@@ -58,15 +58,21 @@ export default function Page() {
     const now = new Date();
     const hh = now.getHours();
     const mm = now.getMinutes();
-    const bucket = Math.round(mm / 10);
-    const clamped = Math.min(5, bucket);
+    // Use floor to map to the lower 10-minute bucket (e.g., 12:06 -> 12:00)
+    const bucket = Math.floor(mm / 10);
+    const clamped = Math.max(0, Math.min(5, bucket));
     return hh * 6 + clamped;
   }, [data.length]);
   const currentScore = apiCurrentScore ?? (data.length ? data[Math.min(currentIndex, data.length - 1)].score : 0);
 
-  const windows = (recommended && recommended.length > 0)
+  const windowsRaw = (recommended && recommended.length > 0)
     ? recommended
     : findBestWindows(data, selectedDuration, currentScore);
+  // Recompute delta vs. now here so it always matches the header's currentScore
+  const windows = windowsRaw.map((w) => ({
+    ...w,
+    deltaVsNow: Math.round(((w.avgScore ?? 0) - (currentScore ?? 0)) * 100) / 100,
+  }));
   const displayWindow = selectedWindow || windows[0];
 
   // Find next better time

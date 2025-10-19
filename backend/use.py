@@ -1,3 +1,5 @@
+import os
+import re
 import pandas as pd
 from datetime import datetime, timedelta
 from typing import Optional, Tuple
@@ -43,6 +45,39 @@ def _build_intervals(df: pd.DataFrame, time_col: str = "Data") -> pd.DataFrame:
     return out
 
 
+def _latest_colored_csv() -> Optional[str]:
+    """Return absolute path to the latest next_day_predictions_colored_YYYY-MM-DD.csv in backend/data."""
+    base_dir = os.path.dirname(__file__)
+    data_dir = os.path.join(base_dir, "data")
+    if not os.path.isdir(data_dir):
+        return None
+    try:
+        files = [f for f in os.listdir(data_dir) if re.match(r"next_day_predictions_colored_\d{4}-\d{2}-\d{2}\.csv", f)]
+        if not files:
+            return None
+        # Sort by date descending using the date inside the filename
+        def file_key(name: str) -> int:
+            m = re.search(r"(\d{4}-\d{2}-\d{2})", name)
+            if not m:
+                return 0
+            try:
+                return int(m.group(1).replace("-", ""))
+            except Exception:
+                return 0
+        files.sort(key=file_key, reverse=True)
+        return os.path.join(data_dir, files[0])
+    except Exception:
+        return None
+
+
+def _round_to_10min_bucket(dt: datetime) -> datetime:
+    """Round a datetime to the nearest 10-minute bucket without rolling the hour."""
+    bucket = int((dt.minute + 5) // 10)  # nearest bucket index 0..6
+    clamped = min(5, bucket)             # clamp to 0..5 so we don't roll over to next hour
+    new_minute = clamped * 10
+    return dt.replace(minute=new_minute, second=0, microsecond=0)
+
+
 def find_interval(
     df: pd.DataFrame,
     when: datetime,
@@ -60,7 +95,7 @@ def find_interval(
 
 
 def color(
-    csv_path: str = "data/next_day_predictions_colored_2025-10-18.csv",
+    csv_path: Optional[str] = None,
     when: Optional[datetime] = None,
 ) -> Tuple[bool, Optional[dict]]:
     """
@@ -73,13 +108,36 @@ def color(
     if when is None:
         when = datetime.now()
 
-    df = pd.read_csv(csv_path)
+    # Resolve CSV path
+    path = csv_path or _latest_colored_csv()
+    if not path or not os.path.exists(path):
+        print("No colored CSV found in backend/data")
+        return False, None
+    df = pd.read_csv(path)
 
-    row = find_interval(df, when, time_col="Data")
+    # Snap 'when' to the nearest 10-minute bucket to match CSV cadence
+    when_bucket = _round_to_10min_bucket(when)
+    row = find_interval(df, when_bucket, time_col="Data")
     print("Current time:", when.strftime("%Y-%m-%d %H:%M:%S"))
     if row is None:
-        print("Outside of all intervals in CSV")
-        return False, None
+        # Try aligning by time-of-day to the CSV date (use the first row's date)
+        try:
+            first_valid: Optional[pd.Timestamp] = None
+            for v in df["Data"].astype(str).tolist():
+                ts = pd.to_datetime(v, errors="coerce")
+                if not pd.isna(ts):
+                    first_valid = pd.Timestamp(ts)
+                    break
+            if first_valid is not None:
+                base_day = first_valid.date()
+                aligned = datetime(base_day.year, base_day.month, base_day.day, when.hour, when.minute, 0, 0)
+                aligned = _round_to_10min_bucket(aligned)
+                row = find_interval(df, aligned, time_col="Data")
+        except Exception:
+            row = None
+        if row is None:
+            print("Outside of all intervals in CSV (after alignment)")
+            return False, None
 
     details = {
         "Start": row.get("Start"),
@@ -96,7 +154,7 @@ def color(
 
 def send(
     dictionary: Optional[dict],
-    csv_path: str = "data/next_day_predictions_colored_2025-10-18.csv",
+    csv_path: Optional[str] = None,
 ):
     """
     Trigger send() based on current color and recent history:
@@ -116,7 +174,10 @@ def send(
     # For yellow, check previous 12 intervals in the CSV
     if color_now == "yellow":
         try:
-            df = pd.read_csv(csv_path)
+            path = csv_path or _latest_colored_csv()
+            if not path or not os.path.exists(path):
+                return
+            df = pd.read_csv(path)
             intervals = _build_intervals(df, time_col="Data")
             # Locate current interval by Start timestamp if available
             if dictionary is None:
@@ -143,5 +204,6 @@ def send(
             return
 
 if __name__ == "__main__":
-    NUll, dictionary = color()
-    send(dictionary)
+    ok, dictionary = color()
+    if ok:
+        send(dictionary)

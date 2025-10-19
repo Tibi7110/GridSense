@@ -33,8 +33,9 @@ export function WindowCard({ window, onNotify, onDetails }: WindowCardProps) {
               {(() => {
                 const [eh, em] = window.end.split(':').map((v) => parseInt(v, 10));
                 const [sh, sm] = window.start.split(':').map((v) => parseInt(v, 10));
-                let mins = (eh * 60 + em) - (sh * 60 + sm);
-                if (mins < 0) mins += 24 * 60; // handle overnight wrap
+                // Include the last 10-minute segment as well to match the window visualization
+                let mins = (eh * 60 + em) - (sh * 60 + sm) + 10;
+                if (mins <= 0) mins += 24 * 60; // handle overnight wrap or equal times
                 return `${mins} minute`;
               })()}
             </div>
@@ -58,14 +59,7 @@ export function WindowCard({ window, onNotify, onDetails }: WindowCardProps) {
           </div>
         </div>
         
-        {/* Stability */}
-        <div className="flex items-center gap-4 text-sm">
-          <div className="flex items-center gap-1.5">
-            <span className="text-gray-500">Stabilitate:</span>
-            <span className="font-medium text-gray-900">{window.stability}</span>
-            <span className="text-gray-400">(±{Number(window.stabilityValue.toFixed(2))}p)</span>
-          </div>
-        </div>
+        {/* Stability section removed per request */}
   {/* Actions */}
   <div className="flex flex-col sm:flex-row flex-wrap gap-2 pt-2 w-full min-w-0">
           <Button 

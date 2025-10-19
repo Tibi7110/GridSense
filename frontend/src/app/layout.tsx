@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { Toaster } from '../components/ui/sonner';
+import Link from 'next/link';
 import './globals.css';
 import { Zap } from 'lucide-react';
 
@@ -19,16 +20,26 @@ export default function RootLayout({
   return (
     <html lang="ro">
       <body className={inter.className}>
-        <header className="bg-gradient-to-r from-emerald-600 to-green-600 border-b border-emerald-700 sticky top-0 z-50 shadow-lg">
+  <header className="bg-gradient-to-r from-emerald-600 to-green-600 border-b border-emerald-700 sticky top-0 z-50 shadow-lg">
         <div className="container mx-auto px-4 py-5 md:py-7">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center shadow-md">
-              <Zap className="w-7 h-7 text-white" />
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center shadow-md">
+                <Zap className="w-7 h-7 text-white" />
+              </div>
+              <div>
+                <h1 className="text-white text-2xl font-bold tracking-tight">GridSense</h1>
+                <p className="text-emerald-50 text-sm">Consum inteligent, energie curată</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-white text-2xl font-bold tracking-tight">GridSense</h1>
-              <p className="text-emerald-50 text-sm">Consum inteligent, energie curată</p>
-            </div>
+            <nav className="flex items-center gap-2 md:gap-3">
+              <Link href="/abonamente" className="text-white/90 hover:text-white text-sm md:text-base px-3 py-2 rounded-md hover:bg-white/10">
+                Abonamente
+              </Link>
+              <Link href="/login" className="bg-white text-emerald-700 hover:bg-emerald-50 text-sm md:text-base font-medium px-3 py-2 rounded-md">
+                Login
+              </Link>
+            </nav>
           </div>
         </div>
       </header>
