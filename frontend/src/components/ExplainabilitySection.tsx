@@ -13,16 +13,50 @@ export function ExplainabilitySection({ window }: ExplainabilitySectionProps) {
   
   if (!window) return null;
   
+  // Build more relevant, data-driven reasons for recommendation
+  const topPercent = Math.max(1, 100 - (Number.isFinite(window.percentile) ? window.percentile : 0));
+  const delta = Number(window.deltaVsNow?.toFixed?.(2) ?? window.deltaVsNow);
+  // Estimate color from percentile similar to backend thresholds
+  const colorName = window.percentile >= 70 ? 'Verde' : window.percentile >= 50 ? 'Galben' : window.percentile >= 25 ? 'Portocaliu' : 'Roșu';
+  const colorDot = window.percentile >= 70 ? '🟢' : window.percentile >= 50 ? '🟡' : window.percentile >= 25 ? '🟠' : '🔴';
+  
+  // Estimate CO₂ savings for running in this window vs. "acum"
+  // Assumptions (adjustable):
+  // - Linear mapping score 0..100 -> intensity 700..50 gCO₂/kWh (coal-ish to very clean mix)
+  // - One wash uses ~1.2 kWh (specificare explicită în UI)
+  // - Compact car emits ~120 g CO₂/km (tank-to-wheel)
+  const INTENSITY_AT_0 = 700; // gCO₂/kWh when score=0
+  const INTENSITY_AT_100 = 50; // gCO₂/kWh when score=100
+  const PER_POINT_DELTA = (INTENSITY_AT_0 - INTENSITY_AT_100) / 100; // gCO₂/kWh per score point
+  const KWH_PER_WASH = 1.2; // kWh per cycle (conform cerinței)
+  const CAR_G_PER_KM = 120; // g/km
+  const diffPoints = Math.max(0, delta); // only count savings when window is cleaner than acum
+  const gramsSaved = diffPoints * PER_POINT_DELTA * KWH_PER_WASH; // g CO₂
+  const kmEq = gramsSaved / CAR_G_PER_KM;
+  const fmtGrams = gramsSaved >= 1000 ? `${(gramsSaved / 1000).toFixed(2)} kg` : `${gramsSaved.toFixed(0)} g`;
+  const fmtKm = kmEq < 1 ? `${(kmEq * 1000).toFixed(0)} m` : `${kmEq.toFixed(1)} km`;
   const reasons = [
-    `${window.percentile >= 90 ? '🌟 Energie ultra-curată' : window.percentile >= 75 ? '✨ Energie foarte curată' : '💚 Energie curată'} - în ${window.percentile >= 90 ? 'top 10%' : window.percentile >= 75 ? 'top 25%' : 'top 50%'} al zilei`,
-    `🔋 Mix energetic ${window.avgScore >= 70 ? 'predominant regenerabil' : window.avgScore >= 50 ? 'echilibrat' : 'cu impact redus'} (scor ${Math.round(window.avgScore)}/100)`,
-    `📊 Stabilitate ${window.stability === 'ridicată' ? 'excelentă' : window.stability === 'medie' ? 'bună' : 'acceptabilă'} - variație de doar ±${window.stabilityValue} puncte`,
-    `${window.trend === 'în creștere' ? '📈 Trend ascendent - energia se curăță' : window.trend === 'în scădere' ? '📉 Aprovizionare stabilă' : '➡️ Condiții constante'}`
+    `🌟 În top ${topPercent}% al zilei (P${window.percentile})`,
+    `📈 Scor mediu ${Math.round(window.avgScore)}/100 — ${delta > 0 ? '+' : ''}${delta} vs. acum`,
+    `${colorDot} Culoare estimată: ${colorName}`,
+    `♻️ Emisii evitate: ~${fmtGrams} (≈ ${fmtKm} cu un autoturism, pentru 1.2 kWh/spălare)`
   ];
   
   return (
     <Card className="p-5 bg-blue-50 border-blue-200">
       <div className="space-y-4">
+        {/* Pe scurt: 3 puncte sus */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <div className="text-sm bg-white/70 border border-blue-200 rounded-md px-3 py-2 text-gray-800">
+            <span className="font-semibold">Scor mediu:</span> {Math.round(window.avgScore)}/100
+          </div>
+          <div className="text-sm bg-white/70 border border-blue-200 rounded-md px-3 py-2 text-gray-800">
+            <span className="font-semibold">Emisii evitate:</span> ~{fmtGrams}
+          </div>
+          <div className="text-sm bg-white/70 border border-blue-200 rounded-md px-3 py-2 text-gray-800">
+            <span className="font-semibold">Top zi:</span> top {topPercent}% ({colorName})
+          </div>
+        </div>
         <h3 className="font-semibold text-gray-900">De ce e recomandat?</h3>
         
         <ul className="space-y-2">

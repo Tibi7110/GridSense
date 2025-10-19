@@ -14,8 +14,9 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* Use a light, subtle background even in dark-mode preference to avoid solid black */
+    --background: #f7fafc; /* light gray */
+    --foreground: #111827; /* near-black for good contrast */
   }
 }
 

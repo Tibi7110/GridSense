@@ -80,14 +80,12 @@ export async function GET() {
     const data = parseCsv(content);
   const stat = fs.statSync(filePath);
   const lastModified = stat.mtime.toISOString();
-    // Compute current score from the current time bucket (rounded to nearest 10 min)
   let currentScore: number | null = null;
   let currentColor: string | null = null;
   let currentTime: string | null = null;
     if (data.length > 0) {
       const now = new Date();
       const hhNum = now.getHours();
-  // Floor to the lower 10-minute bucket (e.g., 12:06 -> 12:00)
   const bucket = Math.floor(now.getMinutes() / 10);
   const mmBucket = Math.max(0, Math.min(5, bucket)) * 10;
       const hh = String(hhNum).padStart(2, '0');
