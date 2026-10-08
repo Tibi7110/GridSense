@@ -1,98 +1,118 @@
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import r2_score, mean_squared_error
+"""Forecast the energy mix using only information available before the forecast.
+
+Compare a calendar Random Forest with a seven-day time-of-day profile on three
+rolling validation days. These validation errors select a method; they are not
+an independent estimate of future accuracy. No weather forecast is available.
+"""
+from dataclasses import dataclass
 import numpy as np
-
-try:
-    # sklearn >=1.4 provides this helper
-    from sklearn.metrics import root_mean_squared_error as sk_rmse
-except Exception:  # pragma: no cover
-    sk_rmse = None
-
 import pandas as pd
-from datetime import timedelta
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error
+from data import energy_score
+from emissions import add_emissions
+
+TARGETS = ['Consum[MW]', 'Productie[MW]', 'Carbune[MW]', 'Hidrocarburi[MW]', 'Ape[MW]',
+           'Nuclear[MW]', 'Eolian[MW]', 'Foto[MW]', 'Biomasa[MW]', 'Sold[MW]']
+
+
+def features(times):
+    hour = times.dt.hour + times.dt.minute / 60
+    return pd.DataFrame({'sin_hour': np.sin(hour * np.pi / 12),
+                         'cos_hour': np.cos(hour * np.pi / 12),
+                         'weekend': (times.dt.weekday >= 5).astype(int)})
+
+
+def fit_forest(history):
+    recent = history[history.Data > history.Data.max() - pd.Timedelta(days=14)]
+    model = RandomForestRegressor(n_estimators=120, min_samples_leaf=18, random_state=42, n_jobs=2)
+    model.fit(features(recent.Data), recent[TARGETS])
+    return model
+
+
+def predict_mix(history, times, method, forest=None):
+    times = pd.Series(times).reset_index(drop=True)
+    if method == 'calendar_random_forest':
+        values = (forest or fit_forest(history)).predict(features(times))
+    else:
+        recent = history[history.Data > history.Data.max() - pd.Timedelta(days=7)].copy()
+        recent['bucket'] = recent.Data.dt.hour * 6 + recent.Data.dt.minute // 10
+        profile = recent.groupby('bucket')[TARGETS].mean().reindex(range(144)).interpolate(limit_direction='both')
+        values = profile.loc[times.dt.hour * 6 + times.dt.minute // 10].to_numpy()
+    out = pd.DataFrame(values, columns=TARGETS)
+    out.insert(0, 'Data', times)
+    # Negative net solar/wind measurements are retained in the forecast. CO2 uses
+    # positive generation only; Sold > 0 is import, Sold < 0 is export.
+    out['Scor_pred'] = energy_score(out)
+    return add_emissions(out)
+
+
+@dataclass
+class ForecastModel:
+    method: str
+    forest: object
+    validation: dict
+    last_observation: str
+
 
 def train(df):
-    # split
-    train_df, test_df = train_test_split(df, test_size=0.285, random_state=42)
+    df = df.sort_values('Data').reset_index(drop=True)
+    last = df.Data.max()
+    methods = ['calendar_random_forest', 'seven_day_profile']
+    errors = {name: [] for name in methods}
+    score_errors = {name: [] for name in methods}
+    validation_days = []
+    # Match the production horizon: partial previous day -> next complete day.
+    for offset in (3, 2, 1):
+        day = last.normalize() - pd.Timedelta(days=offset)
+        cutoff = day - pd.Timedelta(days=1) + (last - last.normalize())
+        history = df[df.Data <= cutoff]
+        actual = df[(df.Data >= day) & (df.Data < day + pd.Timedelta(days=1))]
+        if len(history) < 144 * 7 or len(actual) < 100:
+            continue
+        actual_co2 = add_emissions(actual)['CO2_g_kWh']
+        for name in methods:
+            prediction = predict_mix(history, actual.Data, name)
+            errors[name].append(float(mean_absolute_error(actual_co2, prediction.CO2_g_kWh)))
+            score_errors[name].append(float(mean_absolute_error(actual.Scor, prediction.Scor_pred)))
+        validation_days.append(day.date().isoformat())
+    if not validation_days:
+        raise ValueError('At least about 11 days of valid history are required for temporal validation')
+    metrics = {name: {'co2_mae_g_kwh': float(np.mean(errors[name])),
+                      'score_mae': float(np.mean(score_errors[name])),
+                      'daily_co2_mae_g_kwh': errors[name]} for name in methods}
+    selected = min(methods, key=lambda name: metrics[name]['co2_mae_g_kwh'])
+    report = {'days': validation_days, 'methods': metrics, 'selected': selected,
+              'note': 'Rolling validation used for model selection, not an independent test; no weather inputs.'}
+    print(report)
+    model = ForecastModel(selected, fit_forest(df) if selected == methods[0] else None, report, last.isoformat())
+    test = df[df.Data.dt.normalize().isin(pd.to_datetime(validation_days))]
+    # Legacy callers use this tuple; predictions here also use a strict past cutoff.
+    first_day = test.Data.min().normalize()
+    training = df[df.Data <= first_day - pd.Timedelta(days=1) + (last - last.normalize())]
+    predicted = predict_mix(training, test.Data, selected).Scor_pred.to_numpy()
+    return training, test, predicted, test.Scor, model
 
-    # target
-    if 'Scor' not in df.columns:
-        raise ValueError("DataFrame must contain a 'Scor' column as target")
-    y_train = train_df['Scor']
-    y_test = test_df['Scor']
 
-    # build feature matrix: drop non-feature cols like target and datetimes, then keep numeric columns
-    drop_cols = ['Scor', 'Data']
-    X_train = train_df.drop(columns=[c for c in drop_cols if c in train_df.columns], errors='ignore')
-    X_test = test_df.drop(columns=[c for c in drop_cols if c in test_df.columns], errors='ignore')
-
-    # keep only numeric features
-    X_train = X_train.select_dtypes(include=['number'])
-    X_test = X_test.select_dtypes(include=['number'])
-
-    # ensure we have a 2D array (DataFrame). If only a single numeric column exists, select_dtypes returns a DataFrame.
-    if X_train.shape[1] == 0:
-        raise ValueError('No numeric feature columns found. Ensure DataFrame has numeric features besides "Scor" and "Data"')
-
-    model = RandomForestRegressor(random_state=42)
-    model.fit(X_train, y_train)
-    y_pred = model.predict(X_test)
-    if sk_rmse is not None:
-        rmse = sk_rmse(y_test, y_pred)
-    else:
-        rmse = np.sqrt(np.mean((y_test - y_pred) ** 2))
-    print(f"R2: {r2_score(y_test, y_pred):.4f}")
-    print(f"RMSE: {rmse:.4f}")
-
-    return train_df, test_df, y_pred, y_test, model
+def scale_forecast_scores(frame):
+    """Scale the entire forecast by one factor when its raw maximum exceeds 100."""
+    out = frame.copy()
+    raw = out['Scor_raw'] if 'Scor_raw' in out else out['Scor_pred']
+    if raw.empty or not np.isfinite(raw).all():
+        raise ValueError('Cannot scale empty or non-finite forecast scores')
+    maximum = float(raw.max())
+    out['Scor_raw'] = raw
+    out['Scor_pred'] = raw * (100.0 / maximum) if maximum > 100 else raw
+    return out
 
 
-def predict_next_day(df: pd.DataFrame, model: RandomForestRegressor, freq: str = '10min') -> pd.DataFrame:
-    """Predict Scor for the next day using time features and mean-filled numeric features.
-
-    - Builds a timestamp range from the day after the last `Data` to that day's end using `freq`.
-    - Constructs the same numeric feature columns used in training:
-      drops 'Scor' and 'Data', keeps numeric columns; for future rows, fills with the training means.
-    - Returns a DataFrame with 'Data' and 'Scor_pred'.
-    """
-    if 'Data' not in df.columns:
-        raise ValueError("DataFrame must contain a 'Data' datetime column")
-
-    last_ts = pd.to_datetime(df['Data'].max())
-    if pd.isna(last_ts):
-        raise ValueError('No valid timestamps in Data column')
-
-    start = (last_ts + timedelta(days=1)).normalize()  # next day 00:00
-    end = start + timedelta(days=1) - timedelta(minutes=1)
-    future_index = pd.date_range(start=start, end=end, freq=freq)
-    future = pd.DataFrame({'Data': future_index})
-
-    # add time features
-    future['Ora'] = future['Data'].dt.hour
-    future['Minut'] = future['Data'].dt.minute
-    future['Ziua'] = future['Data'].dt.day
-    future['Luna'] = future['Data'].dt.month
-    future['Weekday'] = future['Data'].dt.weekday
-
-    # determine numeric feature columns from training data
-    drop_cols = ['Scor', 'Data']
-    base_features = df.drop(columns=[c for c in drop_cols if c in df.columns], errors='ignore')
-    numeric_cols = list(base_features.select_dtypes(include=['number']).columns)
-    if not numeric_cols:
-        raise ValueError('No numeric feature columns found for prediction.')
-
-    # compute training means for numeric cols as baseline fillers
-    means = base_features[numeric_cols].mean(numeric_only=True)
-
-    # build future feature matrix: start with time features and fill missing numeric cols
-    for col in numeric_cols:
-        if col not in future.columns:
-            future[col] = means.get(col, 0.0)
-
-    # ensure column order matches training expectations
-    X_future = future[numeric_cols]
-    preds = model.predict(X_future)
-    out = future[['Data']].copy()
-    out['Scor_pred'] = preds
+def predict_next_day(df, model, freq='10min'):
+    last = df.Data.max()
+    if last.isoformat() != model.last_observation:
+        raise ValueError('Forecast input differs from training history')
+    start = last.normalize() + pd.Timedelta(days=1)
+    times = pd.date_range(start, start + pd.Timedelta(days=1), freq=freq, inclusive='left')
+    out = predict_mix(df, times, model.method, model.forest)
+    out = scale_forecast_scores(out)
+    out['Method'] = model.method
     return out

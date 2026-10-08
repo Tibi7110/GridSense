@@ -184,8 +184,8 @@ def decision():
     try:
         from use import color as use_color, _build_intervals
         from api import send_api
-    except Exception:
-        return jsonify({"ok": False, "error": "use.py not available"}), 500
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"Backend dependency import failed: {e}"}), 500
 
     result = {
         "ok": False,

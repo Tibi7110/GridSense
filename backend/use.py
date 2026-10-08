@@ -120,24 +120,9 @@ def color(
     row = find_interval(df, when_bucket, time_col="Data")
     print("Current time:", when.strftime("%Y-%m-%d %H:%M:%S"))
     if row is None:
-        # Try aligning by time-of-day to the CSV date (use the first row's date)
-        try:
-            first_valid: Optional[pd.Timestamp] = None
-            for v in df["Data"].astype(str).tolist():
-                ts = pd.to_datetime(v, errors="coerce")
-                if not pd.isna(ts):
-                    first_valid = pd.Timestamp(ts)
-                    break
-            if first_valid is not None:
-                base_day = first_valid.date()
-                aligned = datetime(base_day.year, base_day.month, base_day.day, when.hour, when.minute, 0, 0)
-                aligned = _round_to_10min_bucket(aligned)
-                row = find_interval(df, aligned, time_col="Data")
-        except Exception:
-            row = None
-        if row is None:
-            print("Outside of all intervals in CSV (after alignment)")
-            return False, None
+        # Predictions belong to their actual date; tomorrow's forecast is not a current reading.
+        print("Outside of all intervals in the prediction CSV")
+        return False, None
 
     details = {
         "Start": row.get("Start"),

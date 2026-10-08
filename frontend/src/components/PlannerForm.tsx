@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { DurationChips } from '@/components/DurationChips';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
@@ -13,7 +13,7 @@ interface PlannerFormProps {
     latestBefore?: string;
     deadline?: string;
   };
-  onConstraintsChange: (constraints: any) => void;
+  onConstraintsChange: (constraints: PlannerFormProps['constraints']) => void;
 }
 
 export function PlannerForm({ 
