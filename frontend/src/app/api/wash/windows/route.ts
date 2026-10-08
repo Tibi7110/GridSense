@@ -1,6 +1,7 @@
+import { backendUrl } from "@/lib/backend";
 export async function GET() {
   try {
-    const resp = await fetch('http://127.0.0.1:5000/windows');
+    const resp = await fetch(backendUrl("windows"), { cache: "no-store" });
     const text = await resp.text();
     let json: unknown = null;
     try {

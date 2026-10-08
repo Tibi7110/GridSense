@@ -1,5 +1,41 @@
 # Pornirea backendului GridSense
 
+## Deploy Render + Vercel
+
+Configurația `render.yaml` din rădăcină folosește branch-ul local `ceva`.
+Publică modificările pe branch-ul ales și configurează același branch în ambele
+servicii. Un serviciu Render existent configurat manual nu preia automat YAML-ul:
+aplică setările în dashboard sau conectează un Blueprint.
+
+| Setare Render | Valoare |
+| --- | --- |
+| Root Directory | `backend` |
+| Build Command | `pip install -r req.txt && bash build.sh` |
+| Start Command | `gunicorn virtual_washer:app --bind 0.0.0.0:$PORT --workers 1` |
+| Health Check Path | `/status` |
+| Branch | `ceva` (sau branch-ul în care publici modificările) |
+| Environment | `TZ=Europe/Bucharest` |
+
+Fișierul `.python-version` selectează Python 3.12. Dacă există deja variabila
+`PYTHON_VERSION` în Render, elimin-o pentru a folosi fișierul (variabila are
+prioritate). Gunicorn folosește un singur worker deoarece simulatorul păstrează
+starea în memorie; repornirea serviciului resetează starea.
+
+Build-ul generează previziunile din Excelul versionat, deoarece `backend/data`
+este ignorat de Git. Sunt necesare și scikit-learn, openpyxl și matplotlib.
+Previziunile rămân pentru ziua următoare ultimei observații din Excel; deployment-ul
+nu colectează date noi și nu asigură actualizare zilnică automată.
+
+În Vercel: Root Directory `frontend`, variabilele `BACKEND_URL` cu URL-ul real
+Render și `TZ=Europe/Bucharest`, apoi redeploy. Next.js citește previziunile de
+la `/forecast-data` și trimite comenzile către backend folosind `BACKEND_URL`.
+Apelurile browserului rămân către rutele Next.js `/api/...`, fără CORS suplimentar.
+Fără `BACKEND_URL`, dezvoltarea locală păstrează citirea CSV-ului local.
+
+După deploy verifică `/status`, `/forecast-data` pe Render și `/api/score` pe Vercel.
+
+## Dezvoltare locală
+
 Din rădăcina proiectului:
 
 ```bash

@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: gridsense-backend
+    runtime: python
+    branch: ceva
+    rootDir: backend
+    buildCommand: pip install -r req.txt && bash build.sh
+    startCommand: gunicorn virtual_washer:app --bind 0.0.0.0:$PORT --workers 1
+    healthCheckPath: /status
+    envVars:
+      - key: TZ
+        value: Europe/Bucharest
