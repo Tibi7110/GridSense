@@ -1,3 +1,4 @@
+import { backendUrl } from "@/lib/backend";
 import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
@@ -97,41 +98,49 @@ function parseCsv(content: string): Row[] {
 
 export async function GET() {
   try {
-    const baseDir = process.cwd();
-    const filePath = findLatestColoredCsv(baseDir);
-    if (!filePath) {
-      return NextResponse.json(
-        {
-          error: "No colored prediction CSV found. Run: make -C backend model",
-        },
-        { status: 404 },
-      );
-    }
-    const content = fs.readFileSync(filePath, "utf-8");
-    const data = parseCsv(content);
-    let validation: { method: string; co2Mae: number } | null = null;
-    const reportPath = path.join(
-      path.dirname(filePath),
-      "model_validation.json",
-    );
-    if (fs.existsSync(reportPath)) {
-      try {
-        const report = JSON.parse(fs.readFileSync(reportPath, "utf-8"));
-        const metric = report.methods?.[report.selected]?.co2_mae_g_kwh;
-        if (
-          filePath.endsWith(
-            `${String(report.forecast_start).slice(0, 10)}.csv`,
-          ) &&
-          Number.isFinite(metric)
-        ) {
-          validation = { method: report.selected, co2Mae: metric };
+    let content: string;
+    let source: string;
+    let lastModified: string;
+    let report = null;
+    if (process.env.BACKEND_URL) {
+      const response = await fetch(backendUrl("forecast-data"), { cache: "no-store" });
+      if (!response.ok) {
+        return NextResponse.json(
+          { error: `Backend forecast unavailable (${response.status})` },
+          { status: response.status },
+        );
+      }
+      const forecast = await response.json();
+      content = forecast.content;
+      source = forecast.source;
+      lastModified = forecast.lastModified;
+      report = forecast.report;
+    } else {
+      const filePath = findLatestColoredCsv(process.cwd());
+      if (!filePath) {
+        return NextResponse.json(
+          { error: "No colored prediction CSV found. Run: make -C backend model" },
+          { status: 404 },
+        );
+      }
+      content = fs.readFileSync(filePath, "utf-8");
+      source = path.basename(filePath);
+      lastModified = fs.statSync(filePath).mtime.toISOString();
+      const reportPath = path.join(path.dirname(filePath), "model_validation.json");
+      if (fs.existsSync(reportPath)) {
+        try {
+          report = JSON.parse(fs.readFileSync(reportPath, "utf-8"));
+        } catch {
+          /* Older forecasts can be served without validation metadata. */
         }
-      } catch {
-        /* Older forecasts can be served without validation metadata. */
       }
     }
-    const stat = fs.statSync(filePath);
-    const lastModified = stat.mtime.toISOString();
+    const data = parseCsv(content);
+    let validation: { method: string; co2Mae: number } | null = null;
+    const metric = report?.methods?.[report.selected]?.co2_mae_g_kwh;
+    if (report && source.endsWith(`${String(report.forecast_start).slice(0, 10)}.csv`) && Number.isFinite(metric)) {
+      validation = { method: report.selected, co2Mae: metric };
+    }
     let currentScore: number | null = null;
     let currentColor: string | null = null;
     let currentTime: string | null = null;
@@ -173,7 +182,7 @@ export async function GET() {
         currentColor,
         currentTime,
         lastModified,
-        source: path.basename(filePath),
+        source,
       },
       { headers: { "Cache-Control": "no-store" } },
     );
