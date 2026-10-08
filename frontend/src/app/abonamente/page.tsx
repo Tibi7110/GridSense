@@ -1,54 +1,93 @@
-import Link from 'next/link';
+import Link from "next/link";
+import { ArrowLeft, ArrowUpRight, Check, Leaf } from "lucide-react";
+
+const plans = [
+  {
+    name: "Gratuit",
+    price: "0",
+    caption: "UN ÎNCEPUT MAI VERDE",
+    features: [
+      "Scorul de sustenabilitate al energiei",
+      "3 intervale recomandate",
+      "Export în calendar",
+    ],
+    action: "Explorează gratuit",
+    href: "/#energie",
+  },
+  {
+    name: "Pro",
+    price: "19",
+    caption: "MAI MULT PENTRU CASA TA",
+    features: [
+      "Programare automată a consumului",
+      "Notificări pentru intervalele verzi",
+      "Istoric de consum pe 30 de zile",
+    ],
+    action: "Explorează funcțiile demo",
+    href: "/#portofel",
+    featured: true,
+  },
+  {
+    name: "Business",
+    price: "49",
+    caption: "CREȘTEM ÎMPREUNĂ",
+    features: [
+      "Mai multe dispozitive, un singur loc",
+      "Integrare prin API",
+      "Suport pentru comunitatea ta",
+    ],
+    action: "Descoperă comunitatea",
+    href: "/#comunitate",
+  },
+];
 
 export default function AbonamentePage() {
   return (
-    <main className="max-w-4xl mx-auto px-4 py-10 space-y-8">
-      <div>
-        <Link href="/" className="inline-flex items-center text-sm text-emerald-700 hover:text-emerald-900 hover:underline">
-          ← Înapoi
-        </Link>
+    <main className="support-page">
+      <Link href="/" className="back-link">
+        <ArrowLeft size={14} /> Înapoi la energia ta
+      </Link>
+      <span className="eyebrow">ENERGIE BUNĂ, ÎN RITMUL TĂU</span>
+      <h1 style={{ marginTop: 12 }}>Un plan pentru fiecare pas.</h1>
+      <p className="support-description">
+        De la primele alegeri sustenabile la o întreagă comunitate conectată.
+      </p>
+      <div className="pricing-grid">
+        {plans.map((plan) => (
+          <article
+            className={`pricing-card ${plan.featured ? "featured" : ""}`}
+            key={plan.name}
+          >
+            <span className="plan-label">{plan.caption}</span>
+            <h2>
+              {plan.name}{" "}
+              {plan.featured && (
+                <Leaf size={17} style={{ display: "inline", marginLeft: 8 }} />
+              )}
+            </h2>
+            <div className="price">
+              {plan.price} <span>RON / lună</span>
+            </div>
+            <ul>
+              {plan.features.map((feature) => (
+                <li key={feature}>
+                  <Check size={14} />
+                  {feature}
+                </li>
+              ))}
+            </ul>
+            <Link href={plan.href} className="button forest-button">
+              {plan.action}
+              <ArrowUpRight size={15} />
+            </Link>
+          </article>
+        ))}
       </div>
-      <h1 className="text-3xl font-bold text-gray-900">Planuri de abonament</h1>
-      <p className="text-gray-600">Alege planul potrivit pentru tine. Toate planurile pot fi anulate oricând.</p>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Free */}
-        <div className="border rounded-lg p-6 bg-white shadow-sm">
-          <h2 className="text-xl font-semibold">Gratuit</h2>
-          <p className="text-3xl font-bold mt-2">0 RON<span className="text-base font-normal text-gray-500">/lună</span></p>
-          <ul className="mt-4 space-y-2 text-sm text-gray-700">
-            <li>• Vizualizare scor în timp real</li>
-            <li>• 3 ferestre recomandate/zi</li>
-            <li>• Notificare manuală</li>
-          </ul>
-          <button className="mt-6 w-full bg-gray-900 text-white py-2 rounded-md hover:bg-black">Începe gratuit</button>
-        </div>
-
-        {/* Pro */}
-        <div className="border rounded-lg p-6 bg-white shadow-md ring-2 ring-blue-200">
-          <h2 className="text-xl font-semibold">Pro</h2>
-          <p className="text-3xl font-bold mt-2">19 RON<span className="text-base font-normal text-gray-500">/lună</span></p>
-          <ul className="mt-4 space-y-2 text-sm text-gray-700">
-            <li>• Programare automată ferestre</li>
-            <li>• Notificări push</li>
-            <li>• Istoric 30 de zile</li>
-          </ul>
-          <button className="mt-6 w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700">Alege Pro</button>
-        </div>
-
-        {/* Business */}
-        <div className="border rounded-lg p-6 bg-white shadow-sm">
-          <h2 className="text-xl font-semibold">Business</h2>
-          <p className="text-3xl font-bold mt-2">49 RON<span className="text-base font-normal text-gray-500">/lună</span></p>
-          <ul className="mt-4 space-y-2 text-sm text-gray-700">
-            <li>• Integrare dispozitive multiple</li>
-            <li>• API și SLA</li>
-            <li>• Suport prioritar</li>
-          </ul>
-          <button className="mt-6 w-full bg-gray-900 text-white py-2 rounded-md hover:bg-black">Contactează-ne</button>
-        </div>
-      </div>
-
+      <p className="support-note">
+        Planuri propuse pentru previzualizare. Funcțiile Pro și Business nu sunt
+        încă activate; explorarea demo nu creează un abonament și nu implică
+        plăți.
+      </p>
     </main>
   );
 }
