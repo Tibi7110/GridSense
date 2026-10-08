@@ -1,15 +1,18 @@
-import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
-import { Toaster } from '../components/ui/sonner';
-import Link from 'next/link';
-import './globals.css';
-import { Zap } from 'lucide-react';
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import { AppShell } from "@/components/AppShell";
+import { Toaster } from "@/components/ui/sonner";
+import "./globals.css";
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-inter",
+});
 
 export const metadata: Metadata = {
-  title: 'GridSense — Planifică consumul sustenabil de electricitate',
-  description: 'Instrument inteligent pentru planificarea consumului de electricitate bazat pe energia curată din rețea',
+  title: "GridSense — Energie bună, împreună",
+  description:
+    "Descoperă energia comunității tale, explorează portofelul de kWh și alege un moment mai bun pentru consum.",
 };
 
 export default function RootLayout({
@@ -19,45 +22,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ro">
-      <body className={inter.className}>
-  <header className="bg-gradient-to-r from-emerald-600 to-green-600 border-b border-emerald-700 sticky top-0 z-50 shadow-lg">
-        <div className="container mx-auto px-4 py-5 md:py-7">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center shadow-md">
-                <Zap className="w-7 h-7 text-white" />
-              </div>
-              <div>
-                <h1 className="text-white text-2xl font-bold tracking-tight">GridSense</h1>
-                <p className="text-emerald-50 text-sm">Consum inteligent, energie curată</p>
-              </div>
-            </div>
-            <nav className="flex items-center gap-2 md:gap-3">
-              <Link href="/abonamente" className="text-white/90 hover:text-white text-sm md:text-base px-3 py-2 rounded-md hover:bg-white/10">
-                Abonamente
-              </Link>
-              <Link href="/login" className="bg-white text-emerald-700 hover:bg-emerald-50 text-sm md:text-base font-medium px-3 py-2 rounded-md">
-                Login
-              </Link>
-            </nav>
-          </div>
-        </div>
-      </header>
-        {children}
-        <Toaster position="top-right" />
-        <footer className="mt-16 py-8 border-t border-gray-200 bg-gradient-to-r from-gray-50 to-emerald-50">
-        <div className="container mx-auto px-4 text-center text-sm text-gray-600">
-          <p className="font-semibold text-emerald-700">
-            GridSense © 2025 — Green Greed
-          </p>
-          <p className="mt-2 text-gray-500">
-            🌱 Consum inteligent bazat pe energie regenerabilă din rețeaua națională
-          </p>
-          <p className="mt-1 text-xs text-gray-400">
-            Scor sustenabilitate 0–100 (scor mai mare = mai multă energie curată)
-          </p>
-        </div>
-      </footer>
+      <body className={inter.variable}>
+        <AppShell>{children}</AppShell>
+        <Toaster position="bottom-right" theme="light" />
       </body>
     </html>
   );

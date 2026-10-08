@@ -1,12 +1,15 @@
 MAIN=main.py
+PYTHON ?= $(if $(wildcard venv/bin/python),venv/bin/python,python3)
 
 model:
-	rm -rf images
 	mkdir -p data
-	PREDICT_NEXT_DAY=true python3 $(MAIN)
+	MPLBACKEND=Agg PREDICT_NEXT_DAY=true $(PYTHON) $(MAIN)
 
 run:
 	python3 use.py
+
+server:
+	venv/bin/python virtual_washer.py
 
 power:
 	python3 client.py

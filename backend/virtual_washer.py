@@ -1,5 +1,7 @@
 from flask import Flask, request, jsonify
-from datetime import datetime
+from datetime import datetime, timezone
+from pathlib import Path
+import json
 import traceback
 import pandas as pd
 import math
@@ -69,6 +71,27 @@ def status():
     return jsonify({"power": machine_state["power"]})
 
 
+@app.get("/forecast-data")
+def forecast_data():
+    """Expose forecast artifacts to the separately hosted Next.js server."""
+    csv_path = Path(_latest_colored_csv())
+    if not csv_path.is_file():
+        return jsonify({"error": "No forecast found. Run: make -C backend model"}), 404
+    report = None
+    report_path = csv_path.parent / "model_validation.json"
+    if report_path.is_file():
+        try:
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+        except (ValueError, OSError):
+            pass
+    return jsonify({
+        "content": csv_path.read_text(encoding="utf-8"),
+        "source": csv_path.name,
+        "report": report,
+        "lastModified": datetime.fromtimestamp(csv_path.stat().st_mtime, timezone.utc).isoformat(),
+    }), 200, {"Cache-Control": "no-store"}
+
+
 @app.route("/auto-check", methods=["GET"])
 def auto_check():
     """
@@ -77,7 +100,6 @@ def auto_check():
     """
     try:
         from use import color as use_color, _build_intervals
-        from api import send_api
     except Exception as e:
         return jsonify({"ok": False, "error": f"Import failed: {str(e)}"}), 500
 
@@ -110,7 +132,6 @@ def auto_check():
         # Pornește automat pentru verde
         if color_now == "green":
             try:
-                send_api()
                 machine_state["power"] = "on"
                 result["triggered"] = True
                 result["action"] = "started_green"
@@ -134,7 +155,6 @@ def auto_check():
                             prev_colors = intervals.loc[idx-12:idx-1, "Color"].astype(str).str.lower().tolist()
                             if all(c in {"orange", "red"} for c in prev_colors):
                                 try:
-                                    send_api()
                                     machine_state["power"] = "on"
                                     result["triggered"] = True
                                     result["action"] = "started_yellow_after_red"
@@ -183,9 +203,8 @@ def _latest_colored_csv():
 def decision():
     try:
         from use import color as use_color, _build_intervals
-        from api import send_api
-    except Exception:
-        return jsonify({"ok": False, "error": "use.py not available"}), 500
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"Backend dependency import failed: {e}"}), 500
 
     result = {
         "ok": False,
@@ -214,15 +233,15 @@ def decision():
             safe = {k: (v.isoformat() if hasattr(v, 'isoformat') else v) for k, v in details.items()}
             result["details"] = safe
 
-        # Decision logic: check color and trigger API if appropriate
+        # Update this simulator directly; an HTTP call to the same single-worker
+        # server would block waiting for the current request to finish.
         should_trigger = False
         color_now = (details or {}).get("Color")
         
         if color_now == "green":
-            # Always send API for green - immediate start
+            # Green starts the simulator immediately.
             should_trigger = True
             try:
-                send_api()
                 machine_state["power"] = "on"
                 result["triggered"] = True
             except Exception as e:
@@ -243,7 +262,6 @@ def decision():
                             if all(c in {"orange", "red"} for c in prev_colors):
                                 should_trigger = True
                                 try:
-                                    send_api()
                                     machine_state["power"] = "on"
                                     result["triggered"] = True
                                 except Exception as e:

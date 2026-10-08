@@ -1,8 +1,9 @@
+import { backendUrl } from "@/lib/backend";
 export async function GET() {
   try {
-    const resp = await fetch('http://127.0.0.1:5000/windows');
+    const resp = await fetch(backendUrl("windows"), { cache: "no-store" });
     const text = await resp.text();
-    let json: any = null;
+    let json: unknown = null;
     try {
       json = JSON.parse(text);
     } catch {
@@ -12,8 +13,8 @@ export async function GET() {
       status: resp.ok ? 200 : resp.status,
       headers: { 'content-type': 'application/json' },
     });
-  } catch (e: any) {
-    return new Response(JSON.stringify({ ok: false, error: e?.message || String(e) }), {
+  } catch (e: unknown) {
+    return new Response(JSON.stringify({ ok: false, error: e instanceof Error ? e.message : String(e) }), {
       status: 500,
       headers: { 'content-type': 'application/json' },
     });

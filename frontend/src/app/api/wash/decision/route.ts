@@ -1,3 +1,4 @@
+import { backendUrl } from "@/lib/backend";
 import { NextRequest } from 'next/server';
 
 export async function POST(req: NextRequest) {
@@ -5,7 +6,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => ({}));
     const { when } = body || {};
 
-    const url = new URL('http://127.0.0.1:5000/decision');
+    const url = new URL(backendUrl("decision"));
 
     const resp = await fetch(url.toString(), {
       method: 'POST',
@@ -13,7 +14,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify(when ? { when } : {}),
     });
     const text = await resp.text();
-    let json: any = null;
+    let json: unknown = null;
     try {
       json = JSON.parse(text);
     } catch {
@@ -24,8 +25,8 @@ export async function POST(req: NextRequest) {
       status: resp.ok ? 200 : resp.status,
       headers: { 'content-type': 'application/json' },
     });
-  } catch (e: any) {
-    return new Response(JSON.stringify({ ok: false, error: e?.message || String(e) }), {
+  } catch (e: unknown) {
+    return new Response(JSON.stringify({ ok: false, error: e instanceof Error ? e.message : String(e) }), {
       status: 500,
       headers: { 'content-type': 'application/json' },
     });
@@ -35,9 +36,9 @@ export async function POST(req: NextRequest) {
 export async function GET() {
   // For convenience, allow GET passthrough without when
   try {
-    const resp = await fetch('http://127.0.0.1:5000/decision');
+    const resp = await fetch(backendUrl("decision"), { cache: "no-store" });
     const text = await resp.text();
-    let json: any = null;
+    let json: unknown = null;
     try {
       json = JSON.parse(text);
     } catch {
@@ -47,8 +48,8 @@ export async function GET() {
       status: resp.ok ? 200 : resp.status,
       headers: { 'content-type': 'application/json' },
     });
-  } catch (e: any) {
-    return new Response(JSON.stringify({ ok: false, error: e?.message || String(e) }), {
+  } catch (e: unknown) {
+    return new Response(JSON.stringify({ ok: false, error: e instanceof Error ? e.message : String(e) }), {
       status: 500,
       headers: { 'content-type': 'application/json' },
     });

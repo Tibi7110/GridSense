@@ -1,4 +1,5 @@
 import os
+import json
 from data import data
 from model import train, predict_next_day
 from print import plot_predictions_hour_line, print_hourly_line_colors, plot_hourly_colors_line
@@ -19,6 +20,13 @@ if __name__ == "__main__":
             print(f"Warning: could not create output directory {out_dir}: {e}")
 
         next_day_df = predict_next_day(df, model)
+        report = {**model.validation, 'last_observation': model.last_observation,
+                  'input': 'input/Grafic_SEN (1).xlsx', 'rows': len(df),
+                  'forecast_start': next_day_df.Data.iloc[0].isoformat(),
+                  'co2_factors_g_kwh': __import__('emissions').FACTORS_G_KWH,
+                  'biomass_factor': None, 'unallocated_factor': None}
+        with open(os.path.join(out_dir, 'model_validation.json'), 'w') as report_file:
+            json.dump(report, report_file, indent=2)
         # show a small sample
         print("\nNext-day predictions (head):")
         print(next_day_df.head())
