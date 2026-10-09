@@ -4,6 +4,35 @@ Programare automată a aparatelor pentru costuri mai mici și emisii reduse.
 
 Tagline: Power Smarter, Greener Homes
 
+## Deploy pe Render și Vercel
+
+Proiectul are două servicii separate: backend Flask pe Render și frontend
+Next.js pe Vercel. Configurația verificată este în [backend/README.md](backend/README.md).
+
+1. Publică modificările pe GitHub și selectează același branch în ambele platforme
+   (`render.yaml` folosește `ceva`).
+2. În Render creează un **Web Service Python**, cu Root Directory `backend`,
+   Build Command `pip install -r req.txt && bash build.sh`, Start Command
+   `gunicorn virtual_washer:app --bind 0.0.0.0:$PORT --workers 1` și Health Check
+   Path `/status`. Setează `TZ=Europe/Bucharest`. Pentru un serviciu existent,
+   verifică manual aceste setări; YAML-ul nu le actualizează automat.
+3. Verifică URL-ul Render la `/status` și `/forecast-data`: ambele trebuie să
+   răspundă cu JSON și HTTP 200 înainte să conectezi frontendul.
+4. În Vercel selectează Root Directory `frontend`, Framework Preset **Next.js**,
+   Install Command `npm ci`, Build Command `npm run build` și lasă Output
+   Directory la valoarea implicită. Configurează `BACKEND_URL` cu adresa reală
+   a serviciului Render (de exemplu `https://gridsense-backend.onrender.com`,
+   înlocuită cu adresa serviciului tău) și `TZ=Europe/Bucharest` pentru mediul
+   în care faci deploy, apoi redeploy. Variabila folosită de cod este
+   `BACKEND_URL`; valoarea locală din `.env.example` trebuie înlocuită în Vercel.
+5. Verifică `/api/score` pe URL-ul Vercel. Datele sunt citite de pe Render;
+   fișierele CSV locale nu sunt disponibile în serviciul Vercel.
+
+Pentru Python folosește versiunea din `backend/.python-version` (3.12).
+Elimină un eventual `PYTHON_VERSION` setat diferit în Render, deoarece are
+prioritate față de fișier. Dacă deploy-ul eșuează, păstrează primul mesaj de
+eroare din build logs, nu doar ultimul mesaj „build failed”.
+
 ---
 
 ## Despre produs
@@ -51,9 +80,8 @@ Repo language mix: TypeScript ~63%, Python ~35.5%, altele ~1.5%.
 
 ## Stack tehnic
 
-- Frontend: TypeScript (SPA). Dev server tipic: Vite (implicit 5173) sau Next.js (implicit 3000).
-- Backend: Python (API + motor de optimizare).
-  - Server web tipic: Uvicorn/FastAPI sau Flask (dev port implicit 8000/5000).
+- Frontend: Next.js 15, React 19 și TypeScript, pe portul 3000 local.
+- Backend: Python, Flask și Gunicorn pentru producție, pe portul 5000 local.
   - Module logice: `model.py`, `scor.py`, `use.py`, simulări în `virtual_washer.py`.
 - ML/Forecasting: model ML de tip time‑series/optimizare, antrenat pe date reale din România (ex.: serii istorice OPCOM/ENTSO‑E/Electricity Maps), folosit pentru a estima costul și intensitatea CO₂ și pentru a prioritiza intervalele.
 - Schimb de date: JSON peste HTTP (REST).
@@ -65,8 +93,8 @@ Notă: Porturile de mai jos reflectă convențiile de dezvoltare; dacă proiectu
 
 ## Cerințe
 
-- Node.js LTS (>=18) + npm/pnpm/yarn
-- Python 3.10+ (recomandat 3.11)
+- Node.js 22 + npm
+- Python 3.12
 - Git
 
 ---
@@ -87,42 +115,33 @@ python -m venv .venv
 # macOS/Linux:
 source .venv/bin/activate
 
-# Dacă există requirements.txt sau pyproject.toml, rulează:
-# pip install -r requirements.txt
-# sau:
-# pip install -U pip && pip install fastapi uvicorn[standard] pydantic requests numpy pandas
-
-# Rulează API-ul (convenție FastAPI/Uvicorn):
-uvicorn api:app --reload --port 8000
-# API disponibil la: http://localhost:8000
-# (Dacă aplicația este Flask, încearcă: flask run --port 5000)
+pip install -r req.txt
+bash build.sh
+python virtual_washer.py
+# API disponibil la: http://127.0.0.1:5000
 ```
 
 3) Frontend (TypeScript)
 ```bash
 cd ../frontend
-# alege managerul tău de pachete:
-npm install
-# sau: pnpm install / yarn install
+npm ci
 
 # Pornește dev server
 npm run dev
-# Port tipic: 5173 (Vite) sau 3000 (Next.js).
-# UI disponibil de obicei la: http://localhost:5173 sau http://localhost:3000
+# UI disponibil la: http://localhost:3000
 ```
 
 4) Conectează Frontend ↔ Backend
-- Configurează URL-ul backend-ului în variabilele de mediu ale frontend-ului, ex.:
-  - Vite: `VITE_API_URL=http://localhost:8000`
-  - Next.js: `NEXT_PUBLIC_API_URL=http://localhost:8000`
-- Creează un fișier `.env` în `frontend/` dacă proiectul îl folosește și adaugă variabila conform build tool-ului.
+- Copiază `frontend/.env.example` în `frontend/.env.local`.
+- Local, `BACKEND_URL=http://127.0.0.1:5000`; în Vercel folosește URL-ul HTTPS Render.
+- Browserul apelează rutele Next.js `/api/...`, care comunică cu backendul.
 
 ---
 
 ## Porturi implicite (dev)
 
-- Backend API: 8000 (Uvicorn/FastAPI) sau 5000 (Flask)
-- Frontend: 5173 (Vite) sau 3000 (Next.js)
+- Backend API: 5000 (Flask); în Render, portul este dat de `$PORT`.
+- Frontend: 3000 (Next.js).
 
 Dacă un port este ocupat, dev server-ul va alege automat altul și îl va afișa în terminal.
 
@@ -141,21 +160,17 @@ make        # task implicit (de ex. run)
 
 ## Configurare date și mediu
 
-Variabile de mediu uzuale (exemple):
-- `API_PORT` (implicit 8000)
-- `API_HOST` (implicit 0.0.0.0 sau 127.0.0.1)
-- `PRICE_SOURCE` (ex.: OPCOM, mock)
-- `CO2_SOURCE` (ex.: ENTSOE, ElectricityMaps)
-- `API_KEY_*` pentru providerii de date (dacă este cazul)
-
-Creează `.env` în `backend/` și setează valorile necesare.
+Frontendul folosește `BACKEND_URL` și `TZ=Europe/Bucharest`.
+Build-ul backendului setează `PREDICT_NEXT_DAY=true` pentru a genera previziunile
+din Excelul versionat. Datele nu sunt actualizate automat zilnic; vezi
+[detaliile modelului](backend/README.md).
 
 ---
 
 ## Flux tipic de utilizare (dev demo)
 
-1) Pornește backend-ul (API) pe 8000.
-2) Pornește frontend-ul pe 5173 (sau 3000) și setează `API_URL`.
+1) Pornește backend-ul Flask pe 5000.
+2) Pornește frontend-ul Next.js pe 3000 și setează `BACKEND_URL`.
 3) În UI:
    - adaugă un „aparat” (ex.: mașină de spălat vase),
    - setează „termină până la” (deadline) și ferestre interzise,

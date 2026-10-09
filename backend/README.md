@@ -34,6 +34,26 @@ Fără `BACKEND_URL`, dezvoltarea locală păstrează citirea CSV-ului local.
 
 După deploy verifică `/status`, `/forecast-data` pe Render și `/api/score` pe Vercel.
 
+### Build reușit, dar Render afișează `uvicorn: command not found`
+
+În **Render → serviciu → Settings → Build & Deploy → Start Command**, înlocuiește
+`uvicorn api:app --reload --port 8000` cu:
+
+```bash
+gunicorn virtual_washer:app --bind 0.0.0.0:$PORT --workers 1
+```
+
+Salvează și folosește **Manual Deploy → Deploy latest commit**. Comanda este deja
+în `render.yaml`, dar trebuie schimbată în dashboard pentru un serviciu configurat
+manual. `api.py` este client HTTP, iar aplicația Flask este în `virtual_washer.py`.
+
+### Vercel afișează `Vulnerable version of Next.js detected`
+
+Publică împreună `frontend/package.json` și `frontend/package-lock.json` actualizate
+și redeploy din acel commit. Versiunea Next.js este fixată la `15.5.27`, cu
+`eslint-config-next` la aceeași versiune și React/React DOM la `19.1.8`.
+Build-ul folosește `npm ci`, deci lockfile-ul trebuie să conțină versiunile noi.
+
 ## Dezvoltare locală
 
 Din rădăcina proiectului:
